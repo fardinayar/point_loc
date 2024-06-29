@@ -177,10 +177,11 @@ class LocDataset():
         # Add file name to last
         #raw_data_list = annotations.to_numpy()
         points, matrices = read_text_file(self.ann_file)
-        point_of_path=[]
-        for point in points:
-            points_path = self.make_path_files(point)
-            point_of_path.append(points_path)
+        point_of_path = [self.make_path_files(point) for point in points]
+        #point_of_path=[]
+        #for point in points:
+            #points_path = self.make_path_files(point)
+            #point_of_path.append(points_path)
 
 
         # load and parse data_infos.
