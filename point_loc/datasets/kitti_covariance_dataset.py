@@ -3,9 +3,6 @@ from os import path as osp
 from typing import Callable, List, Optional, Sequence, Union
 
 import numpy as np
-#from mmengine.dataset import BaseDataset
-#from mmengine.fileio import get_local_path
-#from mmdet3d.registry import DATASETS
 import pandas as pd
 import os
 
@@ -33,13 +30,34 @@ def read_text_file(filename):
             matrices.append(matrix)
     
     return points, matrices
+def read_poses(file_path):
+    """Read ground truth poses from text file."""
+    poses = []
+    try:
+        with open(file_path) as f:
+            lines = f.readlines()
+        for line in lines:
+            pose = np.fromstring(line, dtype=float, sep=' ').reshape(3, 4)
+            pose = np.vstack((pose, [0, 0, 0, 1]))  # Convert to 4x4 transformation matrix
+            poses.append(pose)
+    except Exception as e:
+        print(f"Error reading file {file_path}: {e}")
+    
+    return poses
 
 def give_indices(matrix):
     # Extract upper triangular part of the matrix and their indices
     indices = np.triu_indices(matrix.shape[0])
     return indices
 
-
+def give_transformation(poses,file_number,i):
+    v2c = np.array([[4.276802385584e-04 ,-9.999672484946e-01, -8.084491683471e-03 ,-1.198459927713e-02] ,
+           [-7.210626507497e-03 ,8.081198471645e-03, -9.999413164504e-01 ,-5.403984729748e-02] ,
+           [9.999738645903e-01 ,4.859485810390e-04 ,-7.206933692422e-03 ,-2.921968648686e-01],
+           [0,0,0,1]])
+    transformations = read_poses(poses[i])
+    transformation = transformations[int(file_number[i])]
+    return transformation@v2c
 
 #@DATASETS.register_module()
 class LocDataset():
@@ -106,18 +124,21 @@ class LocDataset():
             scene_idxs = np.array(scene_idxs)
 
         return scene_idxs.astype(np.int32)
-
-    def make_path_files(self, file_name):
-        sequence_dir = os.path.join(self.data_root, "sequences")
         
+   
+    def make_path_files(self,file_name):
+
+        sequence_dir = 'dataset/sequences/'
+        poses_dir = 'dataset/poses/'
+    
         # Extracting file number parts
-        #file_name = os.path.splitext(os.path.basename(file_path))[0]
         file_parts = file_name.split('_')
         # Extracting components
         sequence_number = file_parts[0]  
         point_cloud_number = file_parts[1] 
-        current_file_path = os.path.join(sequence_dir+ sequence_number +'/'+'velodyne/'+f"{point_cloud_number}.bin")
-        return current_file_path
+        current_file_path = os.path.join(sequence_dir, sequence_number, 'velodyne', f"{point_cloud_number}.bin")
+        pose_file_path = os.path.join(poses_dir, f"{sequence_number}.txt")
+        return current_file_path, pose_file_path,point_cloud_number
 
     def _set_group_flag(self) -> None:
         """Set flag according to image aspect ratio."""
@@ -170,18 +191,12 @@ class LocDataset():
             list[dict]: A list of annotation.
         """  # noqa: E501
         
-        # Read annotations
-        #annotations = pd.read_excel(self.ann_file)
-        #points_path = sorted(os.listdir(self.data_prefix['pts']))
-        #annotations['point_path'] = points_path
-        # Add file name to last
-        #raw_data_list = annotations.to_numpy()
+
         points, matrices = read_text_file(self.ann_file)
-        point_of_path = [self.make_path_files(point) for point in points]
-        #point_of_path=[]
-        #for point in points:
-            #points_path = self.make_path_files(point)
-            #point_of_path.append(points_path)
+        #point_of_path = [self.make_path_files(point) for point in points]
+        paths = [self.make_path_files(point) for point in points]
+        point_of_path, path_of_pose, files_number = zip(*[path for path in paths if path != (None, None, None)])
+
 
 
         # load and parse data_infos.
@@ -193,14 +208,14 @@ class LocDataset():
             keys = [f'a{indices[0][j]}{indices[1][j]}' for j in range(len(upper_triangular))]
             # Create gt_label dictionary
             gt_label = {keys[k]: upper_triangular[k] for k in range(len(keys))}
+            
 
             # parse raw data information to target format
             data_info = self.parse_data_info({'gt_label': gt_label,
-                                              'lidar_points':{'lidar_path': point_of_path[i]}
+                                              'lidar_points':{'lidar_path': point_of_path[i]},
+                                              'transformation':give_transformation(path_of_pose,files_number,i=i)
                                               })
             assert isinstance(data_info, dict)
             data_list.append(data_info)
 
         return data_list
-    
-    
