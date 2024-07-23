@@ -3,7 +3,11 @@ import argparse
 import logging
 import os
 import os.path as osp
+import sys
+sys.path.insert(0, r"/home/ehsan/point_loc")
 
+from point_loc.registry import MODELS
+from mmdet.models.losses import MSELoss
 from mmengine.config import Config, DictAction
 from mmengine.logging import print_log
 from mmengine.registry import RUNNERS

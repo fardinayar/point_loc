@@ -79,12 +79,7 @@ class PackInputs(BaseTransform):
         if 'points' in results:
             if isinstance(results['points'], BasePoints):
                 results['points'] = results['points'].tensor
-                #TODO
-                if 'transformation' in results.keys():
-                    ones = torch.ones((results['points'].shape[0], 1))
-                    homogeneous_point_cloud = torch.cat([results['points'], ones], dim=1)
-                    results['points'] = (homogeneous_point_cloud @ torch.as_tensor(results['transformation'].T).float())[:, :3]
-                    results['points'] = results['points'] - results['points'].mean(dim=0)
+
         if 'img' in results:
             if isinstance(results['img'], list):
                 # process multiple imgs in single frame
@@ -149,9 +144,6 @@ class PackInputs(BaseTransform):
             data_sample.set_gt_label(results['gt_label'])
         if 'gt_score' in results:
             data_sample.set_gt_score(results['gt_score'])
-        if 'gt_values' in results:
-            data_sample.set_field(name='gt_values', value=torch.tensor(results['gt_values'], dtype=torch.float))
-            
         packed_results['data_samples'] = data_sample
         packed_results['inputs'] = inputs
 

@@ -59,7 +59,7 @@ def plot_curve(log_dicts, args):
                         f'{metric}. Please check if "--no-validate" is '
                         'specified when you trained the model. Or check '
                         f'if the eval_interval {args.eval_interval} in args '
-                        'is equal to the `eval_interval` during training.')
+                        f'is equal to the `eval_interval` during training. Available metrics: {log_dict[epochs[int(args.eval_interval) - 1]].keys()}')
                 raise KeyError(
                     f'{args.json_logs[i]} does not contain metric {metric}. '
                     'Please reduce the log interval in the config so that '
@@ -207,3 +207,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    plt.savefig('plot.png')
