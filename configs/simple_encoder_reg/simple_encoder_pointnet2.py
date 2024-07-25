@@ -4,9 +4,6 @@ _base_ = [
 
 default_scope = 'point_loc'
 model = dict(
-    head=dict(
-        in_channels=256,
-        ),
     data_preprocessor=dict(type='PointLocDataPreprocessor'),
     backbone=dict(
         type='PointNet2SASSG',

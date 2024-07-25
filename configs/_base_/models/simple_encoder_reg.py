@@ -6,14 +6,13 @@ model = dict(
     head=dict(
         type='LinearRegressionHead',
         num_classes=21,
-        in_channels=512,
+        in_channels=256,
         loss=dict(type='MSELoss'),
         ),
     # model training and testing settings
     train_cfg=dict(),
     test_cfg=dict(mode='whole'))
-val_cfg = dict(type='ValLoop')
-val_evaluator = dict(type='MeanAbsoluteError')
+
 
 
 lr = 0.002  # max learning rate

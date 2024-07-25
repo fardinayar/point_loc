@@ -6,7 +6,17 @@ from mmdet3d.utils import OptConfigType, OptMultiConfig
 from mmpretrain.structures import DataSample
 
 class BaseEstimator(BaseModel, metaclass=ABCMeta):
-    """Base class for both regression and classification tasks. 
+    """
+    Point Loc library is developed for scene-level estimation tasks, like point cloud classification in the simplaste case.
+    and BaseEstimator class is base class for all of them.
+    we assume an Estimator has 4 parts:
+        0) Voxel encoder (optional) that takes raw lidar points and produces voxels for voxel-based models. 
+        1) Backbone that gets inputs and extract features
+        2) Decoder (Optional) that taskes input from backbone and upsample them. 
+            Note: having a decoder to upsample features is not common in scene-level tasks, but for now we define it to exists 
+            as some papers has it.
+        3) Neck that take featuers from the past componnets and makes it ready for the head. For examle, it applay gloval average pooling.
+        4) heads that produces scene-level logits. The estimator can have  auxiliary heads
     From <https://github.com/open-mmlab/mmdetection3d/blob/main/mmdet3d/models/segmentors/base.py>.
 
     Args:
@@ -24,31 +34,31 @@ class BaseEstimator(BaseModel, metaclass=ABCMeta):
 
     @property
     def with_auxiliary_head(self) -> bool:
-        """bool: Whether the estimation head has auxiliary head."""
+        """bool: Whether the estimator has auxiliary head."""
         return hasattr(self,
                        'auxiliary_head') and self.auxiliary_head is not None
     
     @property
     def with_neck(self) -> bool:
-        """bool: Whether the estimation head has auxiliary head."""
+        """bool: Whether the estimator has auxiliary head."""
         return hasattr(self,
                        'neck') and self.neck is not None  
         
     @property
     def with_voxel_encoder(self) -> bool:
-        """bool: Whether the estimation head has auxiliary head."""
+        """bool: Whether the the estimator have voxel encoder"""
         return hasattr(self,
                        'voxel_encoder') and self.voxel_encoder is not None    
     
     @property
     def with_regularization_loss(self) -> bool:
-        """bool: Whether the estimation head has regularization loss for weight."""
+        """bool: Whether the the the estimator has regularization loss for weight."""
         return hasattr(self, 'loss_regularization') and \
             self.loss_regularization is not None
             
     @property
     def with_decoder(self) -> bool:
-        """bool: Whether the estimation head has regularization loss for weight."""
+        """bool: Whether thethe the estimator has regularization loss for weight."""
         return hasattr(self, 'loss_regularization') and \
             self.loss_regularization is not None
             
@@ -115,7 +125,7 @@ class BaseEstimator(BaseModel, metaclass=ABCMeta):
     @abstractmethod
     def _forward(self,
                  batch_inputs: dict,
-                 batch_data_targets: List[Tensor] = None) -> Tensor:
+                 batch_data_targets: List[DataSample] = None) -> Tensor:
         """Network forward process.
 
         Usually includes backbone, neck and head forward without any post-

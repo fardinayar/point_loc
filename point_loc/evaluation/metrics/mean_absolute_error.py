@@ -44,9 +44,9 @@ class MeanAbsoluteError(BaseMetric):
 
     Examples:
         >>> import torch
-        >>> from mmpretrain.evaluation import MeanAbsoluteError
-        >>> y_pred = torch.tensor([3.0, -0.5, 2.0, 7.0])
-        >>> y_true = torch.tensor([2.5, 0.0, 2.0, 8.0])
+        >>> from point_loc.evaluation import MeanAbsoluteError
+        >>> y_pred = torch.tensor([[3.0, -0.5, 2.0, 7.0], [3.0, -0.5, 2.0, 7.0]])
+        >>> y_true = torch.tensor([[2.5, 0.0, 2.0, 8.0], [2.5, 0.0, 3.0, 8.0]])
         >>> MeanAbsoluteError.calculate(y_pred, y_true)
         tensor(0.5)
     """
@@ -91,16 +91,32 @@ class MeanAbsoluteError(BaseMetric):
         metrics = {}
 
         # concat
-        pred = torch.cat([res['pred'] for res in results])
-        target = torch.cat([res['gt'] for res in results])
+        pred = torch.cat([res['pred'].unsqueeze(0) for res in results])
+        target = torch.cat([res['gt'].unsqueeze(0) for res in results])
 
         mae = self.calculate(pred, target)
-        metrics['mae'] = mae.item()
+        metrics['mean absolute error'] = mae.cpu().numpy()
 
         return metrics
+    
+    def _tensor_to_upper_triangular_matrix(self, tensor):
+        n = tensor.size(0)
+        # Calculate the size of the matrix
+        m = int(((-1 + (1 + 8 * n) ** 0.5) / 2))  # Solving m(m + 1)/2 = n
 
-    @staticmethod
+        # Create an empty matrix
+        matrix = torch.zeros((m, m), dtype=tensor.dtype)
+
+        # Create indices for the upper triangular part
+        indices = torch.triu_indices(m, m, offset=0)
+        
+        # Fill the upper triangular part using advanced indexing
+        matrix[indices[0], indices[1]] = tensor
+
+        return matrix
+
     def calculate(
+        self,
         pred: Union[torch.Tensor, np.ndarray, Sequence],
         target: Union[torch.Tensor, np.ndarray, Sequence]
     ) -> torch.Tensor:
@@ -114,7 +130,8 @@ class MeanAbsoluteError(BaseMetric):
         Returns:
             torch.Tensor: The MAE value.
         """
+            
         pred = to_tensor(pred)
         target = to_tensor(target).to(torch.float32)
-        mae = torch.mean(torch.abs(pred - target))
-        return mae
+        mae = torch.mean(torch.abs(pred - target), dim=0)
+        return self._tensor_to_upper_triangular_matrix(mae)

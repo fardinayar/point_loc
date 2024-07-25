@@ -50,11 +50,11 @@ class PoolingNeck(BaseModule):
 
         # We return pooled feature as a list so that it is complitable with mmpretrain's LinearClsHead
         if type(backbone_features) == list:
-            return [self.pool(backbone_features[-1]).squeeze(-1)]
+            return self.pool(backbone_features[-1]).squeeze(-1)
         elif type(backbone_features) == dict:
-            backbone_features = [backbone_features[self.feature_name]]
+            backbone_features = backbone_features[self.feature_name]
             return self.forward(backbone_features)
         elif type(backbone_features) == torch.Tensor:
-            return [self.pool(backbone_features).squeeze(-1)]
+            return self.pool(backbone_features).squeeze(-1)
         elif type(backbone_features) == SparseConvTensor:
-            return [self.pool(backbone_features.dense().flatten(2)).squeeze(-1)]
+            return self.pool(backbone_features.dense().flatten(2)).squeeze(-1)

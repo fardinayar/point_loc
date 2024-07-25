@@ -210,8 +210,6 @@ class CovarianceLocDataset(BaseDataset):
         for i in range(len(matrices)):
             indices = get_indices(matrices[i])
             upper_triangular = matrices[i][indices]
-            # Create keys in the 'a00' format
-            keys = [f'a{indices[0][j]}{indices[1][j]}' for j in range(len(upper_triangular))]
             # Create gt_label dictionary
             gt_label = upper_triangular
             

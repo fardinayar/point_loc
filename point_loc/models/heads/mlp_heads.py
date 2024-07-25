@@ -43,3 +43,14 @@ class LinearRegressionHead(LinearClsHead):
             data_sample.set_field(per_batch_predictions, 'pred_values')
             out_data_samples.append(data_sample)
         return out_data_samples
+    
+    def pre_logits(self, feats: Tuple[torch.Tensor]) -> torch.Tensor:
+        """The process before the final classification head.
+
+        The input ``feats`` is a tuple of tensor, and each tensor is the
+        feature of a backbone stage. In ``LinearClsHead``, we just obtain the
+        feature of the last stage.
+        """
+        # The LinearClsHead doesn't have other module, just return after
+        # unpacking.
+        return feats
