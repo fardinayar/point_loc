@@ -66,7 +66,7 @@ val_dataloader = dict(
         modality=dict(use_lidar=True, use_camera=False),
         backend_args=None))
 
-train_cfg = dict(by_epoch=True, max_epochs=20, val_interval=1)
+train_cfg = dict(by_epoch=True, max_epochs=100, val_interval=1)
 
 val_cfg = dict(type='ValLoop')
 val_evaluator = dict(type='MeanAbsoluteError')
