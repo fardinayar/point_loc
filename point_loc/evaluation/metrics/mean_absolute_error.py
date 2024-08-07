@@ -77,30 +77,23 @@ class MeanAbsoluteError(BaseMetric):
             # Save the result to `self.results`.
             self.results.append(result)
 
-    def compute_metrics(self, results: List):
-        """Compute the metrics from processed results.
-
-        Args:
-            results (dict): The processed results of each batch.
-
-        Returns:
-            Dict: The computed metrics. The keys are the names of the metrics,
-            and the values are corresponding results.
-        """
-        # NOTICE: don't access `self.results` from the method.
+    def compute_metrics(self, results: List[dict]):
         metrics = {}
 
-        # concat
+        # Concatenate all predictions and targets
         pred = torch.cat([res['pred'].unsqueeze(0) for res in results])
         target = torch.cat([res['gt'].unsqueeze(0) for res in results])
-
         mae = self.calculate(pred, target)
-        metrics['mean absolute error'] = mae.cpu().numpy()
+        metrics['mean absolute error'] = mae.cpu().numpy().round(4)  # Convert to Python scalar
 
         return metrics
     
     def _tensor_to_upper_triangular_matrix(self, tensor):
+        """Convert a flat tensor to an upper triangular matrix."""
         n = tensor.size(0)
+        if n == 0:
+            return torch.zeros((0, 0), dtype=tensor.dtype)
+
         # Calculate the size of the matrix
         m = int(((-1 + (1 + 8 * n) ** 0.5) / 2))  # Solving m(m + 1)/2 = n
 
@@ -120,18 +113,25 @@ class MeanAbsoluteError(BaseMetric):
         pred: Union[torch.Tensor, np.ndarray, Sequence],
         target: Union[torch.Tensor, np.ndarray, Sequence]
     ) -> torch.Tensor:
-        """Calculate the Mean Absolute Error (MAE).
+        """Calculate the Mean Absolute Error (MAE) for each dimension.
 
         Args:
-            pred (torch.Tensor | np.ndarray | Sequence): The prediction
-                results.
+            pred (torch.Tensor | np.ndarray | Sequence): The prediction results.
             target (torch.Tensor | np.ndarray | Sequence): The target values.
 
         Returns:
-            torch.Tensor: The MAE value.
+            torch.Tensor: The MAE values for each dimension, converted to an upper triangular matrix.
         """
-            
         pred = to_tensor(pred)
         target = to_tensor(target).to(torch.float32)
+
+        assert len(pred.shape) == 2, f"preds and targets are of dimentation {pred.shape} {target.shape}"
+        
+        if pred.shape != target.shape:
+            raise ValueError(f"Shape mismatch: pred shape {pred.shape} != target shape {target.shape}")
+
+        # Calculate MAE for each dimension
         mae = torch.mean(torch.abs(pred - target), dim=0)
+
+        # Convert to upper triangular matrix
         return self._tensor_to_upper_triangular_matrix(mae)

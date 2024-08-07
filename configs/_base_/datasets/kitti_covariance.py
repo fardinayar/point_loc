@@ -60,7 +60,7 @@ val_dataloader = dict(
     dataset=dict(
         type='CovarianceLocDataset',
         data_root=data_root,
-        ann_file='Covariance_test.txt',
+        ann_file='Covariance_validation.txt',
         pipeline=val_pipeline,
         metainfo=dict(classes=['localizable', 'unlocalizable']),
         modality=dict(use_lidar=True, use_camera=False),

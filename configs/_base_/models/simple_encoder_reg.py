@@ -5,8 +5,7 @@ model = dict(
     type='SimpleEncoder',
     head=dict(
         type='LinearRegressionHead',
-        num_classes=21,
-        in_channels=256,
+        in_channels=512,
         loss=dict(type='MSELoss'),
         ),
     # model training and testing settings
