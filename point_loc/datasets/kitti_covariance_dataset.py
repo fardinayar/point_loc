@@ -217,7 +217,7 @@ class CovarianceLocDataset(BaseDataset):
             # parse raw data information to target format
             data_info = self.parse_data_info({'gt_values': gt_label,
                                               'lidar_points':{'lidar_path': point_of_path[i]},
-                                              'transformation':get_transformation(path_of_pose,files_number,i=i)
+                                              #'transformation':get_transformation(path_of_pose,files_number,i=i)
                                               })
             assert isinstance(data_info, dict)
             data_list.append(data_info)
