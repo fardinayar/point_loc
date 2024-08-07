@@ -4,6 +4,14 @@ _base_ = [
 
 default_scope = 'point_loc'
 model = dict(
+    head=dict(
+        type='MLPRegressionHead',
+        hidden_channels=[512, 128, 32],
+        num_outputs=21,
+        num_shared_layers=1,
+        in_channels=256,
+        loss=dict(type='MSELoss'),
+    ),
     data_preprocessor=dict(type='PointLocDataPreprocessor'),
     backbone=dict(
         type='PointNet2SASSG',

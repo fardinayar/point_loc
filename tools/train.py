@@ -4,7 +4,7 @@ import logging
 import os
 import os.path as osp
 import sys
-sys.path.insert(0, r"/home/ehsan/point_loc")
+sys.path.insert(0, r".")
 
 from point_loc.registry import MODELS
 from mmdet.models.losses import MSELoss
