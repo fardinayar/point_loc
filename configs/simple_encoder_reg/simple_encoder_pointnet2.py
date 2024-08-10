@@ -10,7 +10,6 @@ model = dict(
         num_outputs=21,
         num_shared_layers=1,
         in_channels=256,
-        loss=dict(type='MSELoss'),
     ),
     data_preprocessor=dict(type='PointLocDataPreprocessor'),
     backbone=dict(

@@ -1,12 +1,12 @@
 from itertools import product
-from typing import List, Optional, Sequence, Union
+from typing import List, Optional, Sequence, Union, Callable
 
 import mmengine
 import numpy as np
 import torch
 import torch.nn.functional as F
 from mmengine.evaluator import BaseMetric
-
+from tabulate import tabulate
 from point_loc.registry import METRICS
 
 
@@ -19,6 +19,32 @@ def to_tensor(value):
     elif not isinstance(value, torch.Tensor):
         raise TypeError(f'{type(value)} is not an available argument.')
     return value
+
+    
+def _tensor_to_upper_triangular_matrix(tensor):
+    """Convert a flat tensor to an upper triangular matrix."""
+    n = tensor.size(0)
+    if n == 0:
+        return torch.zeros((0, 0), dtype=tensor.dtype)
+
+    # Calculate the size of the matrix
+    m = int(((-1 + (1 + 8 * n) ** 0.5) / 2))  # Solving m(m + 1)/2 = n
+
+    # Create an empty matrix
+    matrix = torch.zeros((m, m), dtype=tensor.dtype)
+
+    # Create indices for the upper triangular part
+    indices = torch.triu_indices(m, m, offset=0)
+    
+    # Fill the upper triangular part using advanced indexing
+    matrix[indices[0], indices[1]] = tensor
+    
+    tabulate_matrix = [[char for char in 'abcxyz']]
+    for i, char in enumerate('abcxyz'):
+        tabulate_matrix.append([char] + matrix[i].tolist())
+
+    return "\n" + tabulate(tabulate_matrix, headers="firstrow",  tablefmt="orgtbl") + "\n"
+
 
 
 @METRICS.register_module()
@@ -50,7 +76,6 @@ class MeanAbsoluteError(BaseMetric):
         >>> MeanAbsoluteError.calculate(y_pred, y_true)
         tensor(0.5)
     """
-    default_prefix: Optional[str] = 'mae'
 
     def __init__(self,
                  collect_device: str = 'cpu',
@@ -84,34 +109,15 @@ class MeanAbsoluteError(BaseMetric):
         pred = torch.cat([res['pred'].unsqueeze(0) for res in results])
         target = torch.cat([res['gt'].unsqueeze(0) for res in results])
         mae = self.calculate(pred, target)
-        metrics['mean absolute error'] = mae.cpu().numpy().round(4)  # Convert to Python scalar
+        metrics['\n mean absolute error'] = mae  # Convert to Python scalar
 
         return metrics
-    
-    def _tensor_to_upper_triangular_matrix(self, tensor):
-        """Convert a flat tensor to an upper triangular matrix."""
-        n = tensor.size(0)
-        if n == 0:
-            return torch.zeros((0, 0), dtype=tensor.dtype)
-
-        # Calculate the size of the matrix
-        m = int(((-1 + (1 + 8 * n) ** 0.5) / 2))  # Solving m(m + 1)/2 = n
-
-        # Create an empty matrix
-        matrix = torch.zeros((m, m), dtype=tensor.dtype)
-
-        # Create indices for the upper triangular part
-        indices = torch.triu_indices(m, m, offset=0)
-        
-        # Fill the upper triangular part using advanced indexing
-        matrix[indices[0], indices[1]] = tensor
-
-        return matrix
 
     def calculate(
         self,
         pred: Union[torch.Tensor, np.ndarray, Sequence],
-        target: Union[torch.Tensor, np.ndarray, Sequence]
+        target: Union[torch.Tensor, np.ndarray, Sequence],
+        print_visualizar: Callable = _tensor_to_upper_triangular_matrix,
     ) -> torch.Tensor:
         """Calculate the Mean Absolute Error (MAE) for each dimension.
 
@@ -134,4 +140,56 @@ class MeanAbsoluteError(BaseMetric):
         mae = torch.mean(torch.abs(pred - target), dim=0)
 
         # Convert to upper triangular matrix
-        return self._tensor_to_upper_triangular_matrix(mae)
+        return print_visualizar(mae)
+
+
+@METRICS.register_module()
+class RelativeDelta(MeanAbsoluteError):
+
+    def __init__(self,
+                 collect_device: str = 'cpu',
+                 prefix: Optional[str] = None) -> None:
+        super().__init__(collect_device=collect_device, prefix=prefix)
+
+
+    def compute_metrics(self, results: List[dict]):
+        metrics = {}
+
+        # Concatenate all predictions and targets
+        pred = torch.cat([res['pred'].unsqueeze(0) for res in results])
+        target = torch.cat([res['gt'].unsqueeze(0) for res in results])
+        delta_5, delta_10, delta_20 = self.calculate(pred, target)
+        metrics['\n delta_5'] = delta_5
+        metrics['\n delta_10'] = delta_10
+        metrics['\n delta_20'] = delta_20
+
+        return metrics
+
+    def calculate(
+        self,
+        pred: Union[torch.Tensor, np.ndarray, Sequence],
+        target: Union[torch.Tensor, np.ndarray, Sequence],
+        print_visualizar: Callable = _tensor_to_upper_triangular_matrix,
+    ) -> torch.Tensor:
+        """Calculate the Mean Absolute Error (MAE) for each dimension.
+
+        Args:
+            pred (torch.Tensor | np.ndarray | Sequence): The prediction results.
+            target (torch.Tensor | np.ndarray | Sequence): The target values.
+
+        Returns:
+            torch.Tensor: The MAE values for each dimension, converted to an upper triangular matrix.
+        """
+        pred = to_tensor(pred)
+        target = to_tensor(target).to(torch.float32)
+
+        assert len(pred.shape) == 2, f"preds and targets are of dimentation {pred.shape} {target.shape}"
+        
+        if pred.shape != target.shape:
+            raise ValueError(f"Shape mismatch: pred shape {pred.shape} != target shape {target.shape}")
+
+        thresh = torch.abs((pred - target)/target) * 100
+        a1 = (thresh < 5).float().mean(0)
+        a2 = (thresh < 10).float().mean(0)
+        a3 = (thresh < 20).float().mean(0)
+        return print_visualizar(a1), print_visualizar(a2), print_visualizar(a3)

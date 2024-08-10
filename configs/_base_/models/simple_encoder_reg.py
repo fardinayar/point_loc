@@ -6,7 +6,7 @@ model = dict(
     head=dict(
         type='LinearRegressionHead',
         in_channels=512,
-        loss=dict(type='MSELoss'),
+        loss=dict(type='L1Loss'),
         ),
     # model training and testing settings
     train_cfg=dict(),

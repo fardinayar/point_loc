@@ -6,19 +6,14 @@ import os.path as osp
 import sys
 sys.path.insert(0, r".")
 
-from point_loc.registry import MODELS
-from mmdet.models.losses import MSELoss
 from mmengine.config import Config, DictAction
 from mmengine.logging import print_log
 from mmengine.registry import RUNNERS
 from mmengine.runner import Runner
-from mmengine import DefaultScope
-import warnings
-import datetime
 from point_loc.registry import *
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Train a 3D detector')
+    parser = argparse.ArgumentParser(description='Train a 3D estimator')
     parser.add_argument('config', help='train config file path')
     parser.add_argument('--work-dir', help='the dir to save logs and models')
     parser.add_argument(

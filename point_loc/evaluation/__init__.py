@@ -1,3 +1,2 @@
-from .metrics.mean_absolute_error import MeanAbsoluteError
+from .metrics.covariance_estimation import MeanAbsoluteError, RelativeDelta
 
-__all__ = ["mean_absolute_error"]
