@@ -14,9 +14,9 @@ model = dict(
 
 
 
-lr = 0.002  # max learning rate
+lr = 0.0002  # max learning rate
 optim_wrapper = dict(
     type='OptimWrapper',
-    optimizer=dict(type='AdamW', lr=lr, weight_decay=0.),
+    optimizer=dict(type='AdamW', lr=lr, weight_decay=0.05),
     accumulative_counts=4
 )

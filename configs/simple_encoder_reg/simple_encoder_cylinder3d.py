@@ -44,3 +44,16 @@ model = dict(
     
     neck=dict(type='PoolingNeck'),
 )
+
+train_dataloader = dict(
+    batch_size=4,
+    num_workers=4,
+)
+
+optim_wrapper = dict(
+    accumulative_counts=1,
+    _delete_=True, clip_grad=dict(max_norm=35, norm_type=2),
+    
+)
+
+train_cfg = dict(by_epoch=True, max_epochs=25, val_interval=1)
