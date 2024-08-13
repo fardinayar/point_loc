@@ -188,7 +188,7 @@ class RelativeDelta(MeanAbsoluteError):
         if pred.shape != target.shape:
             raise ValueError(f"Shape mismatch: pred shape {pred.shape} != target shape {target.shape}")
 
-        thresh = torch.abs((pred - target)/target) * 100
+        thresh = torch.abs((pred - target)) * 100
         a1 = (thresh < 5).float().mean(0)
         a2 = (thresh < 10).float().mean(0)
         a3 = (thresh < 20).float().mean(0)

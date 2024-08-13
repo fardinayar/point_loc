@@ -5,14 +5,12 @@ _base_ = [
 default_scope = 'point_loc'
 
 
-grid_shape = [480, 360, 32]
+grid_shape = [480, 360, 16]
 
-model = dict(
+model = dict(#init_cfg=dict(type='Pretrained',#checkpoint='checkpoints/cylinder3d_8xb2-amp-laser-polar-mix-3x_semantickitti_20230425_144950-372cdf69.pth'),
     head=dict(
-        type='MLPRegressionHead',
-        hidden_channels=[512, 128, 32],
-        num_outputs=21,
-        num_shared_layers=1,
+        type='LinearRegressionHead',
+        num_classes=3,
         in_channels=512,
     ),
     data_preprocessor=dict(
@@ -21,7 +19,7 @@ model = dict(
         voxel_type='cylindrical',
         voxel_layer=dict(
             grid_shape=grid_shape,
-            point_cloud_range=[0, -3.14159265359, -4, 50, 3.14159265359, 2],
+            point_cloud_range= [-51.2, -51.2, -3.0, 51.2, 51.2, 1.0],
             max_num_points=-1,
             max_voxels=-1,
         ),
@@ -51,9 +49,12 @@ train_dataloader = dict(
 )
 
 optim_wrapper = dict(
-    accumulative_counts=1,
-    _delete_=True, clip_grad=dict(max_norm=35, norm_type=2),
-    
-)
+    type='OptimWrapper',
+    optimizer=dict(type='AdamW', lr=0.0001),
+    paramwise_cfg=dict(
+    custom_keys={
+        'backbone': dict(lr_mult=1),
+    }),
+    )
 
-train_cfg = dict(by_epoch=True, max_epochs=25, val_interval=1)
+train_cfg = dict(by_epoch=True, max_epochs=400, val_interval=1)

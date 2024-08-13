@@ -1,12 +1,11 @@
 # model settings
 
-
 model = dict(
     type='SimpleEncoder',
     head=dict(
         type='LinearRegressionHead',
         in_channels=512,
-        loss=dict(type='L1Loss'),
+        loss=dict(type='SmoothL1Loss', beta=0.3),
         ),
     # model training and testing settings
     train_cfg=dict(),
@@ -14,9 +13,19 @@ model = dict(
 
 
 
-lr = 0.0002  # max learning rate
 optim_wrapper = dict(
     type='OptimWrapper',
-    optimizer=dict(type='AdamW', lr=lr, weight_decay=0.05),
-    accumulative_counts=4
+    optimizer=dict(type='Adam', lr=0.001, weight_decay=0.01),
+    accumulative_counts=10
+    
 )
+
+param_scheduler = [
+    dict(
+        type='CosineAnnealingLR',
+        T_max=200,
+        eta_min=1e-5,
+        by_epoch=True,
+        begin=0,
+        end=200)
+]
