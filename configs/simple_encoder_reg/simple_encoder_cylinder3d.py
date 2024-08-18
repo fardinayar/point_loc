@@ -47,7 +47,7 @@ train_dataloader = dict(
 optim_wrapper = dict(
     paramwise_cfg=dict(
         custom_keys={
-            'backbone': dict(lr_mult=1),
+            'backbone': dict(lr_mult=0.1),
         }),
     )
 

@@ -8,7 +8,7 @@ train_pipeline = [
         load_dim=4,
         use_dim=3,
         backend_args=None),
-    dict(type='PointSample', num_points=30000),
+    #dict(type='PointSample', num_points=30000),
     dict(type='PackInputs',
         keys=['points'])
 
@@ -21,7 +21,7 @@ val_pipeline = [
         load_dim=4,
         use_dim=3,
         backend_args=None),
-    dict(type='PointSample', num_points=30000),
+    #dict(type='PointSample', num_points=30000),
     dict(type='PackInputs',
         keys=['points'])
 
