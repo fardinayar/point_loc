@@ -7,12 +7,8 @@ default_scope = 'point_loc'
 
 grid_shape = [480, 360, 16]
 
-model = dict(#init_cfg=dict(type='Pretrained',#checkpoint='checkpoints/cylinder3d_8xb2-amp-laser-polar-mix-3x_semantickitti_20230425_144950-372cdf69.pth'),
-    head=dict(
-        type='LinearRegressionHead',
-        num_classes=3,
-        in_channels=512,
-    ),
+model = dict(
+    init_cfg=dict(type='Pretrained', checkpoint='checkpoints/cylinder3d_8xb2-amp-laser-polar-mix-3x_semantickitti_20230425_144950-372cdf69.pth'),
     data_preprocessor=dict(
         type='PointLocDataPreprocessor',
         voxel=True,
@@ -44,17 +40,15 @@ model = dict(#init_cfg=dict(type='Pretrained',#checkpoint='checkpoints/cylinder3
 )
 
 train_dataloader = dict(
-    batch_size=4,
-    num_workers=4,
+    batch_size=2,
+    num_workers=2,
 )
 
 optim_wrapper = dict(
-    type='OptimWrapper',
-    optimizer=dict(type='AdamW', lr=0.0001),
     paramwise_cfg=dict(
-    custom_keys={
-        'backbone': dict(lr_mult=1),
-    }),
+        custom_keys={
+            'backbone': dict(lr_mult=1),
+        }),
     )
 
-train_cfg = dict(by_epoch=True, max_epochs=400, val_interval=1)
+train_cfg = dict(by_epoch=True, max_epochs=50, val_interval=1)

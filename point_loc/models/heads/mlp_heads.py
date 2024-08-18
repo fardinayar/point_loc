@@ -7,6 +7,7 @@ from typing import List, Optional, Tuple, Union
 from mmpretrain.structures import DataSample
 from mmpretrain.models.heads import LinearClsHead
 import torch.nn as nn
+from point_loc.datasets import matrix_utils
  
 @MODELS.register_module()
 class LinearRegressionHead(LinearClsHead):
@@ -105,8 +106,8 @@ class MLPRegressionHead(LinearRegressionHead):
         for _ in range(num_outputs):
             layers = []
             for i in range(num_shared_layers, len(hidden_channels)):
-                if i == num_shared_layers:
-                    layers.append(nn.Linear(hidden_channels[i-1], hidden_channels[i]))
+                if i == 0:
+                    layers.append(nn.Linear(in_channels, hidden_channels[i]))
                 else:
                     layers.append(nn.Linear(hidden_channels[i-1], hidden_channels[i]))
                 layers.append(nn.ReLU())
@@ -126,6 +127,11 @@ class MLPRegressionHead(LinearRegressionHead):
         outputs = []
         for specific_layer in self.specific_layers:
             outputs.append(specific_layer(x))
-
+        
+        outputs = torch.cat(outputs, dim=1)
+        
+        L = matrix_utils.vector_to_upper_triangular_matrix(outputs)
+        outputs = matrix_utils.cholesky_undecomposition(L)
+        outputs = matrix_utils.symetric_matrix_to_upper_triangular_vector(outputs)
         # Concatenate outputs
-        return torch.cat(outputs, dim=1)
+        return outputs

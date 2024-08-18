@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from mmengine.evaluator import BaseMetric
 from tabulate import tabulate
 from point_loc.registry import METRICS
-
+from point_loc.datasets import matrix_utils
 
 def to_tensor(value):
     """Convert value to torch.Tensor."""
@@ -188,8 +188,61 @@ class RelativeDelta(MeanAbsoluteError):
         if pred.shape != target.shape:
             raise ValueError(f"Shape mismatch: pred shape {pred.shape} != target shape {target.shape}")
 
-        thresh = torch.abs((pred - target)) * 100
+        thresh = torch.abs((pred - target)/target) * 100
+        thresh = thresh[torch.abs(target-pred).sum(-1) > 0.01]
         a1 = (thresh < 5).float().mean(0)
         a2 = (thresh < 10).float().mean(0)
         a3 = (thresh < 20).float().mean(0)
         return print_visualizar(a1), print_visualizar(a2), print_visualizar(a3)
+    
+
+@METRICS.register_module()
+class KLDivergence(MeanAbsoluteError):
+    
+    def __init__(self,
+                 collect_device: str = 'cpu',
+                 prefix: Optional[str] = None) -> None:
+        super().__init__(collect_device=collect_device, prefix=prefix)
+        
+    def compute_metrics(self, results: List[dict]):
+        metrics = {}
+
+        # Concatenate all predictions and targets
+        pred = torch.cat([res['pred'].unsqueeze(0) for res in results])
+        target = torch.cat([res['gt'].unsqueeze(0) for res in results])
+        kl = self.calculate(pred, target)
+        metrics['\n kl_divergence'] = kl
+        return metrics
+    
+    def calculate(
+        self,
+        pred: Union[torch.Tensor, np.ndarray, Sequence],
+        target: Union[torch.Tensor, np.ndarray, Sequence],
+    ) -> torch.Tensor:
+        """Calculate the Mean Absolute Error (MAE) for each dimension.
+
+        Args:
+            pred (torch.Tensor | np.ndarray | Sequence): The prediction covariance matrix as upper traingular vector matrix.
+            target (torch.Tensor | np.ndarray | Sequence): The target covariance matrix as upper traingular vector matrix..
+
+        """
+        pred = to_tensor(pred)
+        target = to_tensor(target).to(torch.float32)
+        
+        # iterate over pred-target pairs
+        kl_sum = 0
+        
+        for pr, tr in zip(pred, target):
+            pr = matrix_utils.vector_to_symmetric_matrix(pr) + torch.eye(6) * 1e-5  # small constant
+            tr = matrix_utils.vector_to_symmetric_matrix(tr) + torch.eye(6) * 1e-5  # small constant
+            kl = torch.distributions.kl.kl_divergence(
+                torch.distributions.MultivariateNormal(loc=torch.zeros(6), covariance_matrix=tr),
+                torch.distributions.MultivariateNormal(loc=torch.zeros(6), covariance_matrix=pr)
+            )
+            kl_sum += kl
+            
+        return kl_sum / len(pred)
+        
+        
+
+        

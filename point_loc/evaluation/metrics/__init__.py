@@ -1,1 +1,1 @@
-from .covariance_estimation import MeanAbsoluteError, RelativeDelta
+from .covariance_estimation import MeanAbsoluteError, RelativeDelta, KLDivergence
