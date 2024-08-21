@@ -3,9 +3,11 @@
 model = dict(
     type='SimpleEncoder',
     head=dict(
-        type='LinearRegressionHead',
+        type='MLPRegressionHead',
+        num_outputs=21,
+        hidden_channels=[512,512],
         in_channels=512,
-        loss=dict(type='SmoothL1Loss', beta=0.3),
+        loss=dict(type='Hardshrink', lambd=0.001),
         ),
     # model training and testing settings
     train_cfg=dict(),
@@ -15,7 +17,7 @@ model = dict(
 
 optim_wrapper = dict(
     type='OptimWrapper',
-    optimizer=dict(type='Adam', lr=0.001, weight_decay=0.01),
+    optimizer=dict(type='AdamW', lr=0.001, weight_decay=0.01),
     accumulative_counts=10
     
 )

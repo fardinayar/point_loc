@@ -7,12 +7,9 @@ default_scope = 'point_loc'
 
 grid_shape = [480, 360, 16]
 
-model = dict(#init_cfg=dict(type='Pretrained',#checkpoint='checkpoints/cylinder3d_8xb2-amp-laser-polar-mix-3x_semantickitti_20230425_144950-372cdf69.pth'),
-    head=dict(
-        type='LinearRegressionHead',
-        num_classes=3,
-        in_channels=512,
-    ),
+model = dict(
+    init_cfg=dict(type='Pretrained',checkpoint='checkpoints/cylinder3d_8xb2-amp-laser-polar-mix-3x_semantickitti_20230425_144950-372cdf69.pth'),
+
     data_preprocessor=dict(
         type='PointLocDataPreprocessor',
         voxel=True,

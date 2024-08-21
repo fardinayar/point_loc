@@ -27,12 +27,6 @@ val_pipeline = [
         load_dim=4,
         use_dim=3,
         backend_args=None),
-    dict(
-        type='GlobalRotScaleTrans',
-        rot_range=[-0.0001, 0.0001],
-        scale_ratio_range=[0.95, 1.05],
-        translation_std=[0.1, 0.1, 0.1],
-    ),
     dict(type='PackInputs',
         keys=['points'])
 
@@ -53,7 +47,7 @@ train_dataloader = dict(
         backend_args=None))
 
 val_dataloader = dict(
-    batch_size=1,
+    batch_size=8,
     num_workers=1,
     persistent_workers=True,
     sampler=dict(type='DefaultSampler', shuffle=False),
@@ -72,5 +66,10 @@ train_cfg = dict(by_epoch=True, max_epochs=100, val_interval=1)
 val_cfg = dict(type='ValLoop')
 test_cfg = val_cfg
 val_evaluator = dict(type='Evaluator',
-                     metrics=[dict(type='MeanAbsoluteError'), dict(type='RelativeDelta')])
+                     metrics=[dict(type='MeanAbsoluteError'), dict(type='RelativeDelta'), dict(type='KLDivergence')])
 test_evaluator = val_evaluator
+
+
+
+
+

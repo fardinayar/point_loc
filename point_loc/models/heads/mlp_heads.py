@@ -76,7 +76,8 @@ class MLPRegressionHead(LinearRegressionHead):
                  hidden_channels: List[int],
                  num_outputs: int,
                  loss: dict = dict(type='MSELoss'),
-                 num_shared_layers: int = 1,
+                 num_shared_layers: int = 0,
+                 dropout_ratio = 0.2,
                  init_cfg: Optional[dict] = dict(
                      type='Normal', layer='Linear', std=0.01),
                  **kwargs):
@@ -90,13 +91,15 @@ class MLPRegressionHead(LinearRegressionHead):
 
         self.num_outputs = num_outputs
         self.num_shared_layers = num_shared_layers
-
+        self.dropout_ratio = dropout_ratio
         # Build shared layers
         self.shared_layers = nn.ModuleList()
         for i in range(num_shared_layers):
             if i == 0:
+                self.shared_layers.append(nn.Dropout(self.dropout_ratio))
                 self.shared_layers.append(nn.Linear(in_channels, hidden_channels[i]))
             else:
+                self.shared_layers.append(nn.Dropout(self.dropout_ratio))
                 self.shared_layers.append(nn.Linear(hidden_channels[i-1], hidden_channels[i]))
             self.shared_layers.append(nn.ReLU())
 
@@ -105,14 +108,24 @@ class MLPRegressionHead(LinearRegressionHead):
         for _ in range(num_outputs):
             layers = []
             for i in range(num_shared_layers, len(hidden_channels)):
-                if i == num_shared_layers:
-                    layers.append(nn.Linear(hidden_channels[i-1], hidden_channels[i]))
-                else:
-                    layers.append(nn.Linear(hidden_channels[i-1], hidden_channels[i]))
+                self.shared_layers.append(nn.Dropout(self.dropout_ratio))
+                layers.append(nn.Linear(hidden_channels[i-1], hidden_channels[i]))
                 layers.append(nn.ReLU())
+            self.shared_layers.append(nn.Dropout(self.dropout_ratio))
             layers.append(nn.Linear(hidden_channels[-1], 1))
             self.specific_layers.append(nn.Sequential(*layers))
 
+    def vector_to_symmetric_matrix(self, vec):
+        # compute matrix_dim
+        matrix_dim = 6
+        batch_size = vec.size(0)
+        symm_matrix = torch.zeros(batch_size, matrix_dim, matrix_dim, device=vec.device)
+        indices = torch.triu_indices(matrix_dim, matrix_dim)
+        symm_matrix[:, indices[0], indices[1]] = vec
+        symm_matrix = symm_matrix + symm_matrix.transpose(-1, -2)
+        symm_matrix[:, range(matrix_dim), range(matrix_dim)] *= 0.5
+        return symm_matrix
+    
     def forward(self, x: Tuple[torch.Tensor]) -> torch.Tensor:
         """The forward process."""
         x = self.pre_logits(x)
@@ -128,4 +141,12 @@ class MLPRegressionHead(LinearRegressionHead):
             outputs.append(specific_layer(x))
 
         # Concatenate outputs
-        return torch.cat(outputs, dim=1)
+        out = torch.cat(outputs, dim=1) # B, N
+        # convert vector to lower triangular matrix
+        L = self.vector_to_symmetric_matrix(out)
+        out = torch.bmm(L,torch.transpose(L,-1,-2)) #B,N,N
+        # convert out to upper triangular matrix vector
+        indices = torch.triu_indices(out.shape[-1],out.shape[-1])
+        upper_triangular = out[:, indices[0], indices[1]]
+
+        return upper_triangular
