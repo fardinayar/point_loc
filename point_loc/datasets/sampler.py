@@ -56,7 +56,7 @@ class WeightedTargetSampler(Sampler):
         self.weights = self._calculate_weights()
 
     def _calculate_weights(self):
-        targets = [self.dataset[i]['data_samples'].gt_values.abs().sum() + 0.4 for i in range(len(self.dataset))]
+        targets = [self.dataset[i]['data_samples'].gt_values.abs().sum() for i in range(len(self.dataset))]
         targets = np.array(targets)
         weights = targets
         return weights / weights.sum()

@@ -19,14 +19,12 @@ class GemanMcClureLoss(torch.nn.Module):
         return 2 * (diff ** 2) / (diff ** 2 + 4)
 
 class HardShrink(torch.nn.Module):
-    def __init__(self, beta=0.001):
+    def __init__(self, beta=0.01):
         super(HardShrink, self).__init__()
         self.beta = beta
         
     def forward(self, target, pred):
         x = torch.abs(target - pred)
-        weights = torch.ones_like(x)
-        weights[-6:] = weights[-6:] * 10
         return torch.nn.functional.hardshrink(x, self.beta)
 
 MODELS.register_module(module=losses.CrossEntropyLoss)
