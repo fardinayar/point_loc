@@ -8,7 +8,13 @@ train_pipeline = [
         load_dim=4,
         use_dim=3,
         backend_args=None),
-    #dict(type='PointSample', num_points=30000),
+    dict(
+        type='GlobalRotScaleTrans',
+        rot_range=[-0.0001, 0.0001],
+        scale_ratio_range=[0.8, 1.2],
+        translation_std=[5, 5, 5],
+    ),
+    dict(type='PointSample', num_points=30000),
     dict(type='PackInputs',
         keys=['points'])
 
@@ -21,17 +27,17 @@ val_pipeline = [
         load_dim=4,
         use_dim=3,
         backend_args=None),
-    #dict(type='PointSample', num_points=30000),
+    dict(type='PointSample', num_points=30000),
     dict(type='PackInputs',
         keys=['points'])
 
 ]
 
 train_dataloader = dict(
-    batch_size=1,
+    batch_size=2,
     num_workers=1,
     persistent_workers=True,
-    sampler=dict(type='DefaultSampler', shuffle=True),
+    sampler=dict(type='WeightedTargetSampler', shuffle=True),
     dataset=dict(
         type='CovarianceLocDataset',
         data_root=data_root,

@@ -43,7 +43,7 @@ def symetric_matrix_to_upper_triangular_vector(symmetric_matrix: torch.Tensor) -
     
     # Extract the upper triangular elements using advanced indexing
     vector = symmetric_matrix[:, indices[0], indices[1]]
-    
+    assert len(vector.shape) == 2
     return vector
     
 def vector_to_symmetric_matrix(vector: torch.Tensor, dim=6) -> torch.Tensor:

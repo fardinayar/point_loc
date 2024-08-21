@@ -111,6 +111,7 @@ class MLPRegressionHead(LinearRegressionHead):
                 else:
                     layers.append(nn.Linear(hidden_channels[i-1], hidden_channels[i]))
                 layers.append(nn.ReLU())
+                layers.append(nn.Dropout(0.3))
             layers.append(nn.Linear(hidden_channels[-1], 1))
             self.specific_layers.append(nn.Sequential(*layers))
 
@@ -133,5 +134,6 @@ class MLPRegressionHead(LinearRegressionHead):
         L = matrix_utils.vector_to_upper_triangular_matrix(outputs)
         outputs = matrix_utils.cholesky_undecomposition(L)
         outputs = matrix_utils.symetric_matrix_to_upper_triangular_vector(outputs)
+    
         # Concatenate outputs
         return outputs

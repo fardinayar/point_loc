@@ -233,6 +233,7 @@ class KLDivergence(MeanAbsoluteError):
         kl_sum = 0
         
         for pr, tr in zip(pred, target):
+
             pr = matrix_utils.vector_to_symmetric_matrix(pr) + torch.eye(6) * 1e-5  # small constant
             tr = matrix_utils.vector_to_symmetric_matrix(tr) + torch.eye(6) * 1e-5  # small constant
             kl = torch.distributions.kl.kl_divergence(

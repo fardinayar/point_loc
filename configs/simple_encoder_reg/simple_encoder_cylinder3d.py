@@ -5,7 +5,7 @@ _base_ = [
 default_scope = 'point_loc'
 
 
-grid_shape = [480, 360, 16]
+grid_shape = [960, 720, 8]
 
 model = dict(
     init_cfg=dict(type='Pretrained', checkpoint='checkpoints/cylinder3d_8xb2-amp-laser-polar-mix-3x_semantickitti_20230425_144950-372cdf69.pth'),
@@ -47,8 +47,7 @@ train_dataloader = dict(
 optim_wrapper = dict(
     paramwise_cfg=dict(
         custom_keys={
-            'backbone': dict(lr_mult=0.1),
+            'backbone': dict(lr_mult=0.5),
         }),
     )
 
-train_cfg = dict(by_epoch=True, max_epochs=50, val_interval=1)

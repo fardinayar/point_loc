@@ -5,10 +5,10 @@ model = dict(
     head=dict(
         type='MLPRegressionHead',
         in_channels=512,
-        hidden_channels=[256, 128],
+        hidden_channels=[256],
         num_outputs=21,
         num_shared_layers=0,
-        loss=dict(type='SmoothL1Loss', beta=0.01),
+        loss=dict(type='HuberLoss'),
         ),
     # model training and testing settings
     train_cfg=dict(),
@@ -18,7 +18,7 @@ model = dict(
 
 optim_wrapper = dict(
     type='OptimWrapper',
-    accumulative_counts=10,
+    accumulative_counts=40,
     optimizer=dict(type='AdamW', lr=0.0001, weight_decay=0.01),    
 )
 
