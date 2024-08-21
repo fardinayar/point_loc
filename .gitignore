@@ -6,5 +6,5 @@
 *.zip
 *data/kitti_covariance_dataset/dataset
 *point_loc/point_loc.egg-info
-
 *checkpoints
+*.pth

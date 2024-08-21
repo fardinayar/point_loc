@@ -7,6 +7,7 @@ from typing import List, Optional, Tuple, Union
 from mmpretrain.structures import DataSample
 from mmpretrain.models.heads import LinearClsHead
 import torch.nn as nn
+from point_loc.datasets import matrix_utils
  
 @MODELS.register_module()
 class LinearRegressionHead(LinearClsHead):
@@ -108,23 +109,14 @@ class MLPRegressionHead(LinearRegressionHead):
         for _ in range(num_outputs):
             layers = []
             for i in range(num_shared_layers, len(hidden_channels)):
-                self.shared_layers.append(nn.Dropout(self.dropout_ratio))
-                layers.append(nn.Linear(hidden_channels[i-1], hidden_channels[i]))
+                if i == 0:
+                    layers.append(nn.Linear(in_channels, hidden_channels[i]))
+                else:
+                    layers.append(nn.Linear(hidden_channels[i-1], hidden_channels[i]))
                 layers.append(nn.ReLU())
-            self.shared_layers.append(nn.Dropout(self.dropout_ratio))
+                layers.append(nn.Dropout(0.3))
             layers.append(nn.Linear(hidden_channels[-1], 1))
             self.specific_layers.append(nn.Sequential(*layers))
-
-    def vector_to_symmetric_matrix(self, vec):
-        # compute matrix_dim
-        matrix_dim = 6
-        batch_size = vec.size(0)
-        symm_matrix = torch.zeros(batch_size, matrix_dim, matrix_dim, device=vec.device)
-        indices = torch.triu_indices(matrix_dim, matrix_dim)
-        symm_matrix[:, indices[0], indices[1]] = vec
-        symm_matrix = symm_matrix + symm_matrix.transpose(-1, -2)
-        symm_matrix[:, range(matrix_dim), range(matrix_dim)] *= 0.5
-        return symm_matrix
     
     def forward(self, x: Tuple[torch.Tensor]) -> torch.Tensor:
         """The forward process."""
@@ -139,14 +131,12 @@ class MLPRegressionHead(LinearRegressionHead):
         outputs = []
         for specific_layer in self.specific_layers:
             outputs.append(specific_layer(x))
-
+        
+        outputs = torch.cat(outputs, dim=1)
+        
+        L = matrix_utils.vector_to_upper_triangular_matrix(outputs)
+        outputs = matrix_utils.cholesky_undecomposition(L)
+        outputs = matrix_utils.symetric_matrix_to_upper_triangular_vector(outputs)
+    
         # Concatenate outputs
-        out = torch.cat(outputs, dim=1) # B, N
-        # convert vector to lower triangular matrix
-        L = self.vector_to_symmetric_matrix(out)
-        out = torch.bmm(L,torch.transpose(L,-1,-2)) #B,N,N
-        # convert out to upper triangular matrix vector
-        indices = torch.triu_indices(out.shape[-1],out.shape[-1])
-        upper_triangular = out[:, indices[0], indices[1]]
-
-        return upper_triangular
+        return outputs

@@ -8,8 +8,8 @@ import torch
 import torch.nn.functional as F
 from mmengine.evaluator import BaseMetric
 from tabulate import tabulate
-from mmengine.registry import METRICS
-
+from point_loc.registry import METRICS
+from point_loc.datasets import matrix_utils
 
 def to_tensor(value):
     """Convert value to torch.Tensor."""
@@ -190,47 +190,21 @@ class RelativeDelta(MeanAbsoluteError):
             raise ValueError(f"Shape mismatch: pred shape {pred.shape} != target shape {target.shape}")
 
         thresh = torch.abs((pred - target)/target) * 100
-        thresh = thresh[torch.abs((target)).sum(-1) > 0.001]
+        thresh = thresh[torch.abs(target-pred).sum(-1) > 0.01]
         a1 = (thresh < 5).float().mean(0)
         a2 = (thresh < 10).float().mean(0)
         a3 = (thresh < 20).float().mean(0)
         return print_visualizar(a1), print_visualizar(a2), print_visualizar(a3)
     
-    
-    
-    
+
 @METRICS.register_module()
 class KLDivergence(MeanAbsoluteError):
-
+    
     def __init__(self,
                  collect_device: str = 'cpu',
                  prefix: Optional[str] = None) -> None:
         super().__init__(collect_device=collect_device, prefix=prefix)
-
-    
-    def vector_to_symmetric_matrix(self, vec):
-        """
-        Converts a vector of upper triangular elements to a symmetric matrix.
-        vec: Tensor of shape (Batch, N), where N = matrix_dim * (matrix_dim + 1) // 2
-        Returns: Tensor of shape (Batch, matrix_dim, matrix_dim)
-        """
-        # Create an empty tensor to hold the symmetric matrices
-        symm_matrix = torch.zeros(self.matrix_dim, self.matrix_dim, device=vec.device)
-
-        # Create indices to fill in the upper triangular part
-        indices = torch.triu_indices(self.matrix_dim, self.matrix_dim)
         
-        # Fill the upper triangular part
-        symm_matrix[indices[0], indices[1]] = vec
-        
-        # Mirror the upper triangular part to the lower triangular part to make the matrix symmetric
-        symm_matrix = symm_matrix + symm_matrix.transpose(-1, -2)
-        
-        # Subtract the diagonal because it was added twice
-        symm_matrix[range(self.matrix_dim), range(self.matrix_dim)] *= 0.5
-        
-        return symm_matrix
-
     def compute_metrics(self, results: List[dict]):
         metrics = {}
 
@@ -240,30 +214,37 @@ class KLDivergence(MeanAbsoluteError):
         kl = self.calculate(pred, target)
         metrics['\n kl_divergence'] = kl
         return metrics
-
-
+    
     def calculate(
-            self,
-            pred: Union[torch.Tensor, np.ndarray, Sequence],
-            target: Union[torch.Tensor, np.ndarray, Sequence],
-        ) -> torch.Tensor:
+        self,
+        pred: Union[torch.Tensor, np.ndarray, Sequence],
+        target: Union[torch.Tensor, np.ndarray, Sequence],
+    ) -> torch.Tensor:
+        """Calculate the Mean Absolute Error (MAE) for each dimension.
+
+        Args:
+            pred (torch.Tensor | np.ndarray | Sequence): The prediction covariance matrix as upper traingular vector matrix.
+            target (torch.Tensor | np.ndarray | Sequence): The target covariance matrix as upper traingular vector matrix..
+
+        """
         pred = to_tensor(pred)
         target = to_tensor(target).to(torch.float32)
+        
+        # iterate over pred-target pairs
+        kl_sum = 0
+        
+        for pr, tr in zip(pred, target):
 
-        self.matrix_dim = 6
-        kl_divs = []
-        for p, t in zip(pred, target):
-            pred_matrix = self.vector_to_symmetric_matrix(p) + torch.eye(self.matrix_dim) * 1e-5
-            target_matrix = self.vector_to_symmetric_matrix(t) + torch.eye(self.matrix_dim) * 1e-5
+            pr = matrix_utils.vector_to_symmetric_matrix(pr) + torch.eye(6) * 1e-5  # small constant
+            tr = matrix_utils.vector_to_symmetric_matrix(tr) + torch.eye(6) * 1e-5  # small constant
+            kl = torch.distributions.kl.kl_divergence(
+                torch.distributions.MultivariateNormal(loc=torch.zeros(6), covariance_matrix=tr),
+                torch.distributions.MultivariateNormal(loc=torch.zeros(6), covariance_matrix=pr)
+            )
+            kl_sum += kl
             
-            # Create MultivariateNormal distributions
-            pred_dist = MultivariateNormal(torch.zeros(self.matrix_dim), pred_matrix)
-            target_dist = MultivariateNormal(torch.zeros(self.matrix_dim), target_matrix)
+        return kl_sum / len(pred)
+        
+        
 
-            # Calculate KL divergence
-            kl_div = torch.distributions.kl_divergence(target_dist, pred_dist)
-            kl_divs.append(kl_div)
-
-        avg_kl_div = torch.mean(torch.stack(kl_divs))
-        return avg_kl_div
-    
+        
