@@ -5,10 +5,10 @@ model = dict(
     head=dict(
         type='MLPRegressionHead',
         in_channels=512,
-        hidden_channels=[10],
+        hidden_channels=[256],
         num_outputs=21,
         num_shared_layers=0,
-        loss=dict(type='HardShrink'),
+        loss=dict(type='KLDivergenceLoss'),
         ),
     # model training and testing settings
     train_cfg=dict(),

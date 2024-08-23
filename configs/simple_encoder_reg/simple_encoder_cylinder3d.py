@@ -5,7 +5,7 @@ _base_ = [
 default_scope = 'point_loc'
 
 
-grid_shape = [960, 720, 8]
+grid_shape = [480, 360, 8]
 
 model = dict(
     init_cfg=dict(type='Pretrained', checkpoint='checkpoints/cylinder3d_8xb2-amp-laser-polar-mix-3x_semantickitti_20230425_144950-372cdf69.pth'),
@@ -15,7 +15,7 @@ model = dict(
         voxel_type='cylindrical',
         voxel_layer=dict(
             grid_shape=grid_shape,
-            point_cloud_range= [-51.2, -51.2, -3.0, 51.2, 51.2, 1.0],
+            point_cloud_range= [-51.2, -51.2, -2.0, 51.2, 51.2, 1.0],
             max_num_points=-1,
             max_voxels=-1,
         ),
@@ -47,7 +47,7 @@ train_dataloader = dict(
 optim_wrapper = dict(
     paramwise_cfg=dict(
         custom_keys={
-            'head': dict(lr_mult=1000),
+            'head': dict(lr_mult=1),
         }),
     )
 

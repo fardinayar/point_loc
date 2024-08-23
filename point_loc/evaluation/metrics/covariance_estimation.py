@@ -171,31 +171,42 @@ class RelativeDelta(MeanAbsoluteError):
         pred: Union[torch.Tensor, np.ndarray, Sequence],
         target: Union[torch.Tensor, np.ndarray, Sequence],
         print_visualizar: Callable = _tensor_to_upper_triangular_matrix,
-    ) -> torch.Tensor:
-        """Calculate the Mean Absolute Error (MAE) for each dimension.
+    ):
+        """Calculate the relative delta metrics for each dimension.
 
         Args:
             pred (torch.Tensor | np.ndarray | Sequence): The prediction results.
             target (torch.Tensor | np.ndarray | Sequence): The target values.
 
         Returns:
-            torch.Tensor: The MAE values for each dimension, converted to an upper triangular matrix.
+            Tuple[str, str, str]: The delta_5, delta_10, and delta_20 values for each dimension, 
+            converted to upper triangular matrices and formatted as strings.
         """
         pred = to_tensor(pred)
         target = to_tensor(target).to(torch.float32)
 
-        assert len(pred.shape) == 2, f"preds and targets are of dimentation {pred.shape} {target.shape}"
+        assert len(pred.shape) == 2, f"preds and targets are of dimension {pred.shape} {target.shape}"
         
         if pred.shape != target.shape:
             raise ValueError(f"Shape mismatch: pred shape {pred.shape} != target shape {target.shape}")
 
-        thresh = torch.abs((pred - target)/target) * 100
-        thresh = thresh[torch.abs(target-pred).sum(-1) > 0.01]
-        a1 = (thresh < 5).float().mean(0)
-        a2 = (thresh < 10).float().mean(0)
-        a3 = (thresh < 20).float().mean(0)
-        return print_visualizar(a1), print_visualizar(a2), print_visualizar(a3)
-    
+        # Create a mask for elements where target is larger than 0.01
+        mask = torch.abs(target) > 0.01
+
+        # Calculate relative error only for masked elements
+        relative_error = torch.where(mask, torch.abs((pred - target) / target) * 100, torch.zeros_like(pred))
+
+        # Calculate thresholds
+        a1 = torch.where(mask, (relative_error < 5).float(), torch.zeros_like(pred))
+        a2 = torch.where(mask, (relative_error < 10).float(), torch.zeros_like(pred))
+        a3 = torch.where(mask, (relative_error < 20).float(), torch.zeros_like(pred))
+
+        # Calculate mean only for masked elements
+        a1_mean = a1.sum(dim=0) / mask.sum(dim=0).clamp(min=1)
+        a2_mean = a2.sum(dim=0) / mask.sum(dim=0).clamp(min=1)
+        a3_mean = a3.sum(dim=0) / mask.sum(dim=0).clamp(min=1)
+
+        return print_visualizar(a1_mean), print_visualizar(a2_mean), print_visualizar(a3_mean)
 
 @METRICS.register_module()
 class KLDivergence(MeanAbsoluteError):

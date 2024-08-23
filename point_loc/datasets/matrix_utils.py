@@ -1,5 +1,5 @@
 import torch
-
+import numpy as np
 
 def vector_to_upper_triangular_matrix(vector, dim=6):
     """
@@ -39,18 +39,22 @@ def symetric_matrix_to_upper_triangular_vector(symmetric_matrix: torch.Tensor) -
     """
     
     # Create indices for the upper triangular part
-    indices = torch.triu_indices(symmetric_matrix.size(-1), symmetric_matrix.size(-1))
+    indices = torch.triu_indices(symmetric_matrix.shape[-1], symmetric_matrix.shape[-1])
     
+    if len(symmetric_matrix.shape) == 2:
+        symmetric_matrix = symmetric_matrix[None, :, :]
+        
     # Extract the upper triangular elements using advanced indexing
     vector = symmetric_matrix[:, indices[0], indices[1]]
     assert len(vector.shape) == 2
-    return vector
+    return vector.squeeze()
     
 def vector_to_symmetric_matrix(vector: torch.Tensor, dim=6) -> torch.Tensor:
     """
     Convert a vector of size (N, 21) to a symmetric matrix of size (N, 6, 6).
     The vector represents the upper triangular elements of the matrix.
     """
+    vector = torch.tensor(vector)
     if len(vector.shape) == 1:
         N = 1
     else:
@@ -61,10 +65,12 @@ def vector_to_symmetric_matrix(vector: torch.Tensor, dim=6) -> torch.Tensor:
     
     # Create an empty matrix
     matrix = torch.zeros(N, dim, dim, device=vector.device)
+
     
     # Fill the upper triangular part using advanced indexing
-    matrix[:, indices[0], indices[1]] = vector
+    matrix[:, indices[0], indices[1]] = vector.float()
     
     # Make the matrix symmetric
     matrix = matrix + matrix.transpose(-2, -1) - torch.diag_embed(torch.diagonal(matrix, dim1=-2, dim2=-1))
-    return matrix.squeeze()
+    
+    return matrix

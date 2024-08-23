@@ -9,9 +9,12 @@ train_pipeline = [
         use_dim=3,
         backend_args=None),
     dict(
-        type='GlobalRotScaleTrans',
-        rot_range=[-0.0001, 0.0001],
-        scale_ratio_range=[0.8, 1.2],
+        type='RandomJitterPoints'
+    ),
+    dict(
+        type='GlobalRotScaleTransWithCov',
+        rot_range=[-0.78539816*4, 0.78539816*4],
+        scale_ratio_range=[0.99, 1.01],
         translation_std=[5, 5, 5],
     ),
     dict(type='PointSample', num_points=30000),
@@ -37,7 +40,7 @@ train_dataloader = dict(
     batch_size=2,
     num_workers=1,
     persistent_workers=True,
-    sampler=dict(type='WeightedTargetSampler', shuffle=True),
+    sampler=dict(type='DefaultSampler', shuffle=False),
     dataset=dict(
         type='CovarianceLocDataset',
         data_root=data_root,
@@ -62,7 +65,7 @@ val_dataloader = dict(
         backend_args=None))
 
 test_dataloader = val_dataloader
-train_cfg = dict(by_epoch=True, max_epochs=100, val_interval=1)
+train_cfg = dict(by_epoch=True, max_epochs=200, val_interval=2)
 
 val_cfg = dict(type='ValLoop')
 test_cfg = val_cfg
